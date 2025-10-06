@@ -1,2 +1,6 @@
+# Ignore intermediate data
 new_data/layerzero_transactions.csv
-new_data/
+new_data/fetch_stats.csv
+
+# Do not ignore the entire folder
+!new_data/

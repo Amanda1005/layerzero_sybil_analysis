@@ -8,7 +8,7 @@ def clean_sybil_addresses():
     """清理重複地址並驗證格式"""
     
     # 讀取原始資料
-    df = pd.read_csv("data/sybil_addresses.csv")
+    df = pd.read_csv("new_data/sybil_addresses.csv")
     original_count = len(df)
     logging.info(f"📖 讀取原始資料：{original_count} 個地址")
     
@@ -47,7 +47,7 @@ def clean_sybil_addresses():
     
     # 儲存報告
     report_df = pd.DataFrame([report])
-    report_df.to_csv("data/cleaning_report.csv", index=False)
+    report_df.to_csv("new_data/cleaning_report.csv", index=False)
     
     logging.info("📋 清理報告已儲存至 data/cleaning_report.csv")
     logging.info("🎯 清理完成！使用 sybil_addresses_clean.csv 進行後續分析")

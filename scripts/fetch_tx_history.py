@@ -207,7 +207,7 @@ def main():
 
     # 配置分析規模
     ANALYSIS_CONFIG = {
-        'address_count': 10000,
+        'address_count': 5000,
         'batch_size': 20,
         'max_workers': 3,
         'rate_limit': 3

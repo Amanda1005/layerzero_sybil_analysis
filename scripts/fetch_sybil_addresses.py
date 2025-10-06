@@ -5,7 +5,7 @@ import os
 os.makedirs("new_data", exist_ok=True)
 
 # Read txt file, one address per line
-with open("data/all_addresses_clean.txt", "r") as file:
+with open("new_data/all_addresses_clean.txt", "r") as file:
     addresses = file.read().splitlines()
 
 # 限制為前 5000 筆
