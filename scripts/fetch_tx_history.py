@@ -200,81 +200,53 @@ class LayerZeroTxFetcher:
 
 def main():
     """主執行函數"""
-    
-    # 配置分析規模 - 可以在這裡調整
+
+    # 設定儲存路徑
+    output_folder = "new_data"
+    os.makedirs(output_folder, exist_ok=True)
+
+    # 配置分析規模
     ANALYSIS_CONFIG = {
-        'address_count': 100,    # 要分析的地址數量 (20/100/500/全部)
-        'batch_size': 20,        # 每批處理數量
-        'max_workers': 3,        # 並發數量
-        'rate_limit': 3          # 每秒請求數
+        'address_count': 10000,
+        'batch_size': 20,
+        'max_workers': 3,
+        'rate_limit': 3
     }
-    
+
     # 1. 讀取清理後的地址清單
     try:
         df_addresses = pd.read_csv("data/sybil_addresses_clean.csv")
         addresses = df_addresses['address'].tolist()
         logging.info(f"📖 載入 {len(addresses)} 個地址")
     except FileNotFoundError:
-        try:
-            # 如果沒有清理版本，使用原始版本
-            df_addresses = pd.read_csv("data/sybil_addresses.csv")
-            addresses = df_addresses['address'].drop_duplicates().tolist()
-            logging.info(f"📖 載入 {len(addresses)} 個地址（使用原始檔案）")
-        except FileNotFoundError:
-            logging.error("❌ 找不到地址檔案")
-            return
-    
+        logging.error("❌ 找不到地址清單")
+        return
+
     # 2. 初始化抓取器
     fetcher = LayerZeroTxFetcher(rate_limit=ANALYSIS_CONFIG['rate_limit'])
-    
+
     # 3. 選擇分析地址數量
-    if ANALYSIS_CONFIG['address_count'] == '全部':
-        test_addresses = addresses
-    else:
-        test_addresses = addresses[:ANALYSIS_CONFIG['address_count']]
-    
+    test_addresses = addresses[:ANALYSIS_CONFIG['address_count']]
+
     logging.info(f"🎯 分析模式：{len(test_addresses)} 個地址")
-    
-    # 預估時間
     estimated_minutes = len(test_addresses) * 2.5 / 60
     logging.info(f"⏱️  預估時間：{estimated_minutes:.1f} 分鐘")
-    
+
     # 4. 抓取交易資料
     transactions = fetcher.fetch_batch_transactions(
         test_addresses, 
         batch_size=ANALYSIS_CONFIG['batch_size'],
         max_workers=ANALYSIS_CONFIG['max_workers']
     )
-    
+
     # 5. 儲存結果
     if transactions:
-        df_tx = fetcher.save_transactions(transactions)
-        
-        # 生成詳細統計
+        tx_path = os.path.join(output_folder, "layerzero_transactions.csv")
+        df_tx = fetcher.save_transactions(transactions, filename=tx_path)
+
         stats = fetcher.generate_summary_stats(df_tx)
-        
-        print("\n" + "="*60)
-        print("📊 LayerZero 交易抓取結果統計")
-        print("="*60)
-        print(f"測試地址數量: {len(test_addresses)}")
-        print(f"有交易的地址: {stats.get('unique_addresses', 0)}")
-        print(f"總交易數量: {stats.get('total_transactions', 0)}")
-        print(f"涉及鏈數量: {stats.get('unique_chains', 0)}")
-        
-        if stats.get('date_range'):
-            print(f"時間範圍: {stats['date_range']['earliest']} 至 {stats['date_range']['latest']}")
-        
-        print("\n📈 交易狀態分佈:")
-        for status, count in stats.get('status_distribution', {}).items():
-            print(f"  {status}: {count}")
-        
-        print("\n🔗 熱門鏈對:")
-        for (src, dst), count in list(stats.get('chain_pairs', {}).items())[:5]:
-            print(f"  {src} → {dst}: {count}")
-        
-        print("="*60)
-        
-        # 儲存統計報告
+
+        stats_path = os.path.join(output_folder, "fetch_stats.csv")
         stats_df = pd.DataFrame([{
             'timestamp': datetime.now(),
             'addresses_tested': len(test_addresses),
@@ -282,12 +254,12 @@ def main():
             'total_transactions': stats.get('total_transactions', 0),
             'success_rate': f"{(stats.get('unique_addresses', 0)/len(test_addresses)*100):.1f}%"
         }])
-        
-        stats_df.to_csv("data/fetch_stats.csv", index=False)
-        logging.info("📋 統計報告已儲存至 data/fetch_stats.csv")
-        
+        stats_df.to_csv(stats_path, index=False)
+
+        logging.info(f"📋 統計報告已儲存至 {stats_path}")
     else:
-        logging.warning("⚠️  沒有成功抓取到任何交易資料")
+        logging.warning("⚠️ 無成功抓取任何交易資料")
+
         
         # 提供下一步建議
         print("\n" + "="*60)
